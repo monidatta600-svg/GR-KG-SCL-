@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GR-KG School Management System</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#1a6b3c"/>
+<meta name="description" content="GR-KG School Management System"/>
+<link rel="icon" href="icon.png"/>
+<link rel="apple-touch-icon" href="icon.png"/>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ══════════════════════════════════════════════════
+  // 🔥 FIREBASE CONFIG — আপনার নিজের config এখানে দিন
+  // ══════════════════════════════════════════════════
+  const firebaseConfig = {
+    apiKey: "DEMO_MODE",
+    authDomain: "gr-kg-school.firebaseapp.com",
+    projectId: "gr-kg-school",
+    storageBucket: "gr-kg-school.appspot.com",
+    messagingSenderId: "000000000000",
+    appId: "1:000000000000:web:000000000000000000"
+  };
+
+  // Demo mode — Firebase ছাড়াও কাজ করবে
+  window.DB_READY = false;
+  try {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    window.firebaseDB = db;
+    window.fbCollection = collection;
+    window.fbAddDoc = addDoc;
+    window.fbGetDocs = getDocs;
+    window.fbDoc = doc;
+    window.fbUpdateDoc = updateDoc;
+    window.fbDeleteDoc = deleteDoc;
+    window.fbQuery = query;
+    window.fbOrderBy = orderBy;
+    window.fbOnSnapshot = onSnapshot;
+    window.DB_READY = true;
+  } catch(e) {
+    console.log("Running in demo mode");
+  }
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&display=swap');
+
+:root {
+  --green: #1a6b3c;
+  --green-l: #22a05a;
+  --green-pale: #e8f5ee;
+  --red: #c0392b;
+  --red-l: #e74c3c;
+  --red-pale: #fdecea;
+  --dark: #0f1f14;
+  --mid: #1e3a26;
+  --text: #1a2e1e;
+  --text-l: #5a7a62;
+  --white: #fff;
+  --off: #f5f9f6;
+  --border: #cde8d6;
+  --orange: #e67e22;
+  --blue: #2563eb;
+  --shadow: 0 4px 20px rgba(26,107,60,0.10);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'Hind Siliguri',sans-serif;background:var(--off);color:var(--text);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--green-l);border-radius:99px;}
+
+/* ── LAYOUT ── */
+#app{display:flex;height:100vh;overflow:hidden;}
+.sidebar{
+  width:230px;min-width:230px;
+  background:linear-gradient(180deg,var(--dark) 0%,var(--mid) 100%);
+  display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+  position:relative;z-index:10;
+}
+.sidebar::before{
+  content:'';position:absolute;top:-50px;right:-50px;
+  width:160px;height:160px;border-radius:50%;
+  background:radial-gradient(circle,rgba(34,160,90,0.2) 0%,transparent 70%);
+  pointer-events:none;
+}
+.s-logo{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.s-logo h1{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:#fff;letter-spacing:1px;}
+.s-logo h1 span{color:var(--green-l);}
+.s-logo p{font-size:9px;color:rgba(255,255,255,0.35);margin-top:2px;letter-spacing:2px;text-transform:uppercase;}
+.s-badge{
+  margin:10px 20px;padding:6px 10px;border-radius:6px;
+  background:rgba(34,160,90,0.15);border:1px solid rgba(34,160,90,0.3);
+  font-size:10px;color:var(--green-l);letter-spacing:1px;
+  display:flex;align-items:center;gap:6px;
+}
+.s-badge::before{content:'●';font-size:7px;color:#4ade80;}
+.s-sec{padding:14px 18px 4px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.28);}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 20px;cursor:pointer;
+  color:rgba(255,255,255,0.5);font-size:13px;
+  transition:all .2s;position:relative;border:none;background:transparent;
+  width:100%;text-align:left;font-family:'Hind Siliguri',sans-serif;
+}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,0.05);}
+.nav-item.active{
+  color:#fff;
+  background:linear-gradient(90deg,rgba(34,160,90,0.22) 0%,transparent 100%);
+}
+.nav-item.active::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:3px;background:var(--green-l);border-radius:0 2px 2px 0;
+}
+.nav-icon{font-size:15px;width:18px;text-align:center;}
+.s-footer{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,0.08);}
+.user-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.06);border-radius:10px;}
+.u-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--green-l),var(--green));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+.u-info p{font-size:12px;color:#fff;font-weight:500;}
+.u-info small{font-size:10px;color:rgba(255,255,255,0.38);}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.topbar{
+  background:#fff;padding:14px 24px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  flex-shrink:0;
+}
+.topbar h2{font-family:'Playfair Display',serif;font-size:18px;color:var(--text);}
+.topbar p{font-size:11px;color:var(--text-l);margin-top:1px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.search-box{
+  display:flex;align-items:center;gap:8px;
+  background:var(--off);border:1px solid var(--border);
+  border-radius:8px;padding:7px 12px;
+}
+.search-box input{border:none;background:transparent;outline:none;font-size:13px;font-family:'Hind Siliguri',sans-serif;color:var(--text);width:160px;}
+.search-box input::placeholder{color:var(--text-l);}
+.icon-btn{
+  width:36px;height:36px;border-radius:8px;
+  border:1px solid var(--border);background:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+  position:relative;transition:background .2s;
+}
+.icon-btn:hover{background:var(--green-pale);}
+.notif-dot{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--red);border:1.5px solid #fff;}
+.content{flex:1;overflow-y:auto;padding:22px 24px;}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;}
+.card-h{
+  padding:14px 18px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-h h3{font-size:14px;font-weight:600;}
+.card-h span{font-size:11px;color:var(--text-l);}
+.card-b{padding:16px 18px;}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.stat-card{
+  background:#fff;border-radius:14px;padding:18px;
+  border:1px solid var(--border);cursor:default;
+  transition:transform .2s,box-shadow .2s;
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.stat-card.g{border-left:4px solid var(--green-l);}
+.stat-card.r{border-left:4px solid var(--red);}
+.stat-card.b{border-left:4px solid var(--blue);}
+.stat-card.o{border-left:4px solid var(--orange);}
+.stat-icon{font-size:22px;margin-bottom:8px;}
+.stat-val{font-size:26px;font-weight:700;font-family:'Playfair Display',serif;color:var(--text);}
+.stat-lbl{font-size:11px;color:var(--text-l);margin-top:1px;}
+.stat-chg{font-size:10px;margin-top:5px;}
+.stat-chg.up{color:var(--green-l);}.stat-chg.dn{color:var(--red);}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{
+  text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text-l);padding:8px 12px;background:var(--off);
+}
+.tbl td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--green-pale);}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+.badge.paid,.badge.present{background:var(--green-pale);color:var(--green);}
+.badge.unpaid,.badge.absent{background:var(--red-pale);color:var(--red);}
+.badge.partial{background:#fef3e2;color:#c97b2e;}
+
+/* ── AVATAR ── */
+.av{
+  width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#fff;flex-shrink:0;
+}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:20px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+
+/* ── NOTICE ── */
+.notice-item{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);}
+.notice-item:last-child{border-bottom:none;}
+.n-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.notice-item h4{font-size:13px;font-weight:500;}
+.notice-item p{font-size:11px;color:var(--text-l);margin-top:1px;}
+
+/* ── ATTENDANCE BAR ── */
+.att-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.att-lbl{font-size:11px;width:75px;color:var(--text-l);}
+.att-bar{flex:1;height:7px;background:var(--border);border-radius:99px;overflow:hidden;}
+.att-fill{height:100%;border-radius:99px;transition:width .6s ease;}
+.att-pct{font-size:11px;font-weight:600;width:34px;text-align:right;}
+
+/* ── QUICK ACTIONS ── */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.qa-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 12px;border-radius:9px;
+  border:1.5px solid var(--border);background:var(--off);
+  cursor:pointer;font-size:12px;font-weight:500;color:var(--text);
+  font-family:'Hind Siliguri',sans-serif;transition:all .2s;
+}
+.qa-btn:hover{background:var(--green-pale);border-color:var(--green-l);color:var(--green);}
+
+/* ── RING ── */
+.ring-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;}
+.ring-lbl{position:absolute;text-align:center;}
+.ring-lbl .rv{font-size:20px;font-weight:700;font-family:'Playfair Display',serif;color:var(--text);}
+.ring-lbl .rl{font-size:9px;color:var(--text-l);}
+
+/* ── FEE SUMMARY ── */
+.fee-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+.fee-box{padding:14px;border-radius:12px;text-align:center;}
+.fee-box .fv{font-size:20px;font-weight:700;font-family:'Playfair Display',serif;}
+.fee-box .fl{font-size:10px;margin-top:2px;}
+.fee-box.ft{background:var(--green-pale);}.fee-box.ft .fv{color:var(--green);}
+.fee-box.fc{background:#e8f0fe;}.fee-box.fc .fv{color:var(--blue);}
+.fee-box.fd{background:var(--red-pale);}.fee-box.fd .fv{color:var(--red);}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:3px;margin-bottom:16px;background:var(--off);padding:4px;border-radius:10px;width:fit-content;}
+.tab-btn{
+  padding:7px 14px;border-radius:7px;border:none;background:transparent;
+  font-size:12px;cursor:pointer;color:var(--text-l);font-weight:400;
+  transition:all .2s;font-family:'Hind Siliguri',sans-serif;
+}
+.tab-btn.active{background:#fff;color:var(--green);font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.07);}
+
+/* ── BUTTONS ── */
+.btn-p{
+  background:linear-gradient(135deg,var(--green-l),var(--green));
+  color:#fff;border:none;border-radius:9px;
+  padding:9px 16px;font-size:13px;font-weight:500;
+  cursor:pointer;font-family:'Hind Siliguri',sans-serif;
+  display:inline-flex;align-items:center;gap:6px;transition:opacity .2s;
+}
+.btn-p:hover{opacity:.88;}
+.btn-r{
+  background:linear-gradient(135deg,var(--red-l),var(--red));
+  color:#fff;border:none;border-radius:9px;
+  padding:8px 14px;font-size:12px;font-weight:500;
+  cursor:pointer;font-family:'Hind Siliguri',sans-serif;
+}
+.btn-ghost{
+  padding:8px 14px;border:1.5px solid var(--border);
+  border-radius:9px;background:#fff;font-size:12px;
+  cursor:pointer;font-family:'Hind Siliguri',sans-serif;color:var(--text-l);
+}
+
+/* ── PAGE HEADER ── */
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.ph h2{font-family:'Playfair Display',serif;font-size:20px;}
+.ph p{font-size:11px;color:var(--text-l);margin-top:2px;}
+
+/* ── FILTER ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.filter-chip{
+  padding:6px 13px;border:1.5px solid var(--border);border-radius:20px;
+  background:#fff;color:var(--text-l);font-size:12px;cursor:pointer;
+  font-family:'Hind Siliguri',sans-serif;transition:all .2s;
+}
+.filter-chip.active{background:var(--green-pale);border-color:var(--green-l);color:var(--green);font-weight:600;}
+
+/* ── MODAL ── */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.45);
+  display:flex;align-items:center;justify-content:center;z-index:999;
+  animation:fadeIn .2s ease;
+}
+.modal{
+  background:#fff;border-radius:16px;padding:26px;
+  width:500px;max-width:95vw;max-height:88vh;overflow-y:auto;
+  box-shadow:0 24px 60px rgba(0,0,0,0.18);
+  animation:slideUp .25s ease;
+}
+.modal h3{font-family:'Playfair Display',serif;font-size:19px;margin-bottom:18px;color:var(--text);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:11px;font-weight:600;color:var(--text-l);margin-bottom:4px;letter-spacing:.3px;}
+.fi{
+  width:100%;padding:8px 11px;border:1.5px solid var(--border);
+  border-radius:8px;font-family:'Hind Siliguri',sans-serif;font-size:13px;
+  outline:none;color:var(--text);transition:border-color .2s;
+}
+.fi:focus{border-color:var(--green-l);}
+textarea.fi{resize:vertical;min-height:70px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.page{animation:fadeIn .3s ease;}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  background:var(--dark);color:#fff;
+  padding:12px 18px;border-radius:10px;font-size:13px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);
+  animation:slideUp .3s ease;
+  display:flex;align-items:center;gap:8px;
+}
+.toast.success::before{content:'✅';}
+.toast.error::before{content:'❌';}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar{width:60px;min-width:60px;}
+  .s-logo p,.s-logo h1,.nav-item span:last-child,.u-info,.s-sec,.s-badge{display:none;}
+  .nav-item{justify-content:center;padding:12px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .g2,.g3{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+  .topbar h2{font-size:15px;}
+  .content{padding:14px;}
+  .fee-sum{grid-template-columns:1fr;}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .topbar{padding:10px 14px;}
+  .search-box{display:none;}
+}
+
+/* ── RESULT CARD ── */
+.result-badge{
+  display:inline-block;padding:4px 12px;border-radius:20px;
+  font-size:12px;font-weight:700;
+}
+
+/* ── SALARY ── */
+.progress-sm{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:4px;}
+.progress-sm div{height:100%;border-radius:99px;}
+
+/* ── ROUTINE ── */
+.routine-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.r-cell{padding:10px 8px;border-radius:10px;text-align:center;border:1px solid var(--border);}
+.r-cell.h{background:var(--dark);color:#fff;font-weight:600;font-size:11px;}
+.r-cell .r-sub{font-size:12px;font-weight:600;color:var(--green);}
+.r-cell .r-tchr{font-size:10px;color:var(--text-l);margin-top:2px;}
+.r-cell .r-time{font-size:9px;color:var(--text-l);}
+
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="s-logo">
+      <h1><span>GR</span>-KG</h1>
+      <p>School Management</p>
+    </div>
+    <div class="s-badge">LIVE SYSTEM</div>
+    <div class="s-sec">Main Menu</div>
+    <button class="nav-item active" data-page="dashboard"><span class="nav-icon">🏠</span><span>Dashboard</span></button>
+    <button class="nav-item" data-page="students"><span class="nav-icon">🎒</span><span>Students</span></button>
+    <button class="nav-item" data-page="teachers"><span class="nav-icon">👩‍🏫</span><span>Teachers</span></button>
+    <button class="nav-item" data-page="attendance"><span class="nav-icon">📋</span><span>Attendance</span></button>
+    <button class="nav-item" data-page="results"><span class="nav-icon">📊</span><span>Results</span></button>
+    <button class="nav-item" data-page="fees"><span class="nav-icon">💳</span><span>Fees & Salary</span></button>
+    <button class="nav-item" data-page="routine"><span class="nav-icon">🗓️</span><span>Routine</span></button>
+    <button class="nav-item" data-page="notices"><span class="nav-icon">📢</span><span>Notices</span></button>
+    <div class="s-sec">System</div>
+    <button class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span><span>Settings</span></button>
+    <div class="s-footer">
+      <div class="user-pill">
+        <div class="u-avatar">A</div>
+        <div class="u-info"><p>Admin</p><small>Super Admin</small></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2 id="page-title">Admin Dashboard</h2>
+        <p id="page-sub">GR-KG School Management System</p>
+      </div>
+      <div class="topbar-right">
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="text" id="search-input" placeholder="Search students..."/>
+        </div>
+        <button class="icon-btn" onclick="showNotifPanel()">🔔<div class="notif-dot"></div></button>
+        <button class="icon-btn" onclick="downloadApk()">📥</button>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<!-- MODALS -->
+<div id="modal-root"></div>
+
+<!-- TOAST -->
+<div id="toast-root"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// LOCAL STORAGE DATABASE (Firebase fallback)
+// ══════════════════════════════════════════════════
+const LS = {
+  get(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null}},
+  set(k,v){localStorage.setItem(k,JSON.stringify(v))},
+  push(k,v){const a=LS.get(k)||[];v.id=v.id||'id_'+Date.now();a.push(v);LS.set(k,a);return v},
+  update(k,id,patch){const a=LS.get(k)||[];const i=a.findIndex(x=>x.id===id);if(i>=0){a[i]={...a[i],...patch};LS.set(k,a);}},
+  delete(k,id){const a=(LS.get(k)||[]).filter(x=>x.id!==id);LS.set(k,a);}
+};
+
+// ══════════════════════════════════════════════════
+// SEED DATA (first run)
+// ══════════════════════════════════════════════════
+function seedData(){
+  if(LS.get('seeded')) return;
+  const students=[
+    {id:'GR-001',name:'Ayaan Khan',cls:'Class 5',section:'A',roll:'05',blood:'B+',guardian:'Mr. Imran Khan',phone:'01712345678',fee:'paid',month:'Feb 2026'},
+    {id:'GR-002',name:'Zara Malik',cls:'Class 7',section:'B',roll:'12',blood:'O+',guardian:'Mrs. Sana Malik',phone:'01898765432',fee:'unpaid',month:'Feb 2026'},
+    {id:'GR-003',name:'Rohan Das',cls:'Nursery',section:'A',roll:'03',blood:'A+',guardian:'Mr. Raju Das',phone:'01611223344',fee:'paid',month:'Feb 2026'},
+    {id:'GR-004',name:'Priya Sharma',cls:'Class 10',section:'A',roll:'01',blood:'AB+',guardian:'Mr. Anup Sharma',phone:'01755667788',fee:'paid',month:'Feb 2026'},
+    {id:'GR-005',name:'Farhan Ahmed',cls:'Class 3',section:'B',roll:'08',blood:'O-',guardian:'Mrs. Nila Ahmed',phone:'01633445566',fee:'unpaid',month:'Feb 2026'},
+    {id:'GR-006',name:'Tania Islam',cls:'Class 6',section:'A',roll:'14',blood:'B-',guardian:'Mr. Karim Islam',phone:'01844556677',fee:'paid',month:'Feb 2026'},
+  ];
+  const teachers=[
+    {id:'T-001',name:'Ms. Rimi Akter',subject:'Mathematics',salary:'24000',status:'paid'},
+    {id:'T-002',name:'Mr. Saiful Islam',subject:'Science',salary:'22500',status:'paid'},
+    {id:'T-003',name:'Mrs. Nafisa Rahman',subject:'English',salary:'21000',status:'unpaid'},
+    {id:'T-004',name:'Mr. Jahid Hasan',subject:'Bangla',salary:'20000',status:'paid'},
+  ];
+  const notices=[
+    {id:'N-001',title:'Annual Sports Day – March 15th',date:'Feb 25',type:'event',color:'#22a05a'},
+    {id:'N-002',title:'Fee Submission Deadline Extended',date:'Feb 24',type:'fee',color:'#e67e22'},
+    {id:'N-003',title:'Emergency PTA Meeting – Feb 28',date:'Feb 23',type:'urgent',color:'#c0392b'},
+    {id:'N-004',title:'New Syllabus PDF for Class 9-10',date:'Feb 22',type:'academic',color:'#2563eb'},
+  ];
+  const results=[
+    {id:'R-001',studentId:'GR-001',name:'Ayaan Khan',cls:'Class 5',math:88,science:91,english:76,bangla:83,exam:'Annual 2025'},
+    {id:'R-002',studentId:'GR-002',name:'Zara Malik',cls:'Class 7',math:72,science:68,english:85,bangla:79,exam:'Annual 2025'},
+    {id:'R-003',studentId:'GR-004',name:'Priya Sharma',cls:'Class 10',math:95,science:97,english:92,bangla:88,exam:'Annual 2025'},
+    {id:'R-004',studentId:'GR-003',name:'Rohan Das',cls:'Nursery',math:80,science:75,english:88,bangla:82,exam:'Annual 2025'},
+  ];
+  LS.set('students',students);
+  LS.set('teachers',teachers);
+  LS.set('notices',notices);
+  LS.set('results',results);
+  LS.set('seeded',true);
+}
+
+// ══════════════════════════════════════════════════
+// AVATAR COLORS & HELPERS
+// ══════════════════════════════════════════════════
+const AV_COLORS=['#22a05a','#c0392b','#2563eb','#e67e22','#8b5cf6','#0891b2'];
+function avColor(i){return AV_COLORS[i%AV_COLORS.length];}
+function initials(name){return name.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase();}
+function avHTML(name,i,size=30){
+  return `<div class="av" style="background:${avColor(i)};width:${size}px;height:${size}px;font-size:${size<30?10:12}px">${initials(name)}</div>`;
+}
+
+// ══════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════
+function toast(msg,type='success'){
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;t.textContent=msg;
+  document.getElementById('toast-root').appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ══════════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════════
+function showModal(html){
+  const root=document.getElementById('modal-root');
+  root.innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">${html}</div>`;
+}
+function closeModal(){document.getElementById('modal-root').innerHTML='';}
+
+// ══════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════
+const PAGE_INFO={
+  dashboard:{title:'Admin Dashboard',sub:'GR-KG School Management System'},
+  students:{title:'Student Database',sub:'Nursery to Class 10'},
+  teachers:{title:'Teachers & Staff',sub:'Manage faculty information'},
+  attendance:{title:'Digital Attendance',sub:'Daily attendance tracking'},
+  results:{title:'Results & Marksheet',sub:'Academic performance records'},
+  fees:{title:'Financial Module',sub:'Fee & salary management'},
+  routine:{title:'Class Routine',sub:'Weekly schedule'},
+  notices:{title:'Notice Board',sub:'Announcements & alerts'},
+  settings:{title:'Settings',sub:'System configuration'},
+};
+let currentPage='dashboard';
+
+function navigate(page){
+  currentPage=page;
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  const info=PAGE_INFO[page]||{title:page,sub:''};
+  document.getElementById('page-title').textContent=info.title;
+  document.getElementById('page-sub').textContent=info.sub;
+  const c=document.getElementById('content');
+  c.innerHTML='';
+  const p=document.createElement('div');
+  p.className='page';
+  const renderer=PAGES[page];
+  if(renderer) renderer(p);
+  else p.innerHTML=`<div class="card card-b" style="padding:40px;text-align:center;color:var(--text-l)">Page coming soon…</div>`;
+  c.appendChild(p);
+  closeModal();
+}
+
+document.querySelectorAll('.nav-item[data-page]').forEach(b=>{
+  b.addEventListener('click',()=>navigate(b.dataset.page));
+});
+
+// ══════════════════════════════════════════════════
+// DOWNLOAD APK INFO
+// ══════════════════════════════════════════════════
+function downloadApk(){
+  showModal(`<div class="modal">
+    <h3>📱 App Install করুন</h3>
+    <div style="background:var(--green-pale);border-radius:10px;padding:16px;margin-bottom:16px;">
+      <p style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px;">Android এ Install করার নিয়ম:</p>
+      <ol style="font-size:13px;color:var(--text);line-height:1.8;padding-left:16px;">
+        <li>Chrome browser এ এই website খুলুন</li>
+        <li>Menu (⋮) → "Add to Home screen" চাপুন</li>
+        <li>"Add" চাপুন — App install হয়ে যাবে!</li>
+      </ol>
+    </div>
+    <div style="background:#e8f0fe;border-radius:10px;padding:16px;margin-bottom:16px;">
+      <p style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:8px;">iPhone এ Install করার নিয়ম:</p>
+      <ol style="font-size:13px;color:var(--text);line-height:1.8;padding-left:16px;">
+        <li>Safari browser এ এই website খুলুন</li>
+        <li>Share button (□↑) চাপুন</li>
+        <li>"Add to Home Screen" চাপুন</li>
+      </ol>
+    </div>
+    <p style="font-size:12px;color:var(--text-l);text-align:center;">এটি একটি PWA app — App Store/Play Store ছাড়াই install হবে ✅</p>
+    <div class="modal-actions"><button class="btn-p" onclick="closeModal()">✓ বুঝেছি</button></div>
+  </div>`);
+}
+
+// ══════════════════════════════════════════════════
+// DASHBOARD PAGE
+// ══════════════════════════════════════════════════
+function renderDashboard(el){
+  const students=LS.get('students')||[];
+  const teachers=LS.get('teachers')||[];
+  const paid=students.filter(s=>s.fee==='paid').length;
+  const unpaid=students.filter(s=>s.fee==='unpaid').length;
+
+  el.innerHTML=`
+  <div class="stats-grid">
+    <div class="stat-card g"><div class="stat-icon">🎒</div><div class="stat-val">${students.length}</div><div class="stat-lbl">মোট শিক্ষার্থী</div><div class="stat-chg up">↑ Nursery to Class 10</div></div>
+    <div class="stat-card b"><div class="stat-icon">👩‍🏫</div><div class="stat-val">${teachers.length}</div><div class="stat-lbl">শিক্ষক ও কর্মী</div><div class="stat-chg up">↑ সক্রিয়</div></div>
+    <div class="stat-card r"><div class="stat-icon">💰</div><div class="stat-val">${unpaid}</div><div class="stat-lbl">ফি বকেয়া</div><div class="stat-chg dn">↓ পেমেন্ট বাকি</div></div>
+    <div class="stat-card o"><div class="stat-icon">📋</div><div class="stat-val">${paid}</div><div class="stat-lbl">ফি পরিশোধ</div><div class="stat-chg up">↑ পরিশোধিত</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-h"><h3>সাম্প্রতিক শিক্ষার্থী</h3><span>${students.length} জন</span></div>
+      <table class="tbl">
+        <thead><tr><th>শিক্ষার্থী</th><th>শ্রেণী</th><th>অভিভাবক</th><th>ফি</th></tr></thead>
+        <tbody>
+          ${students.slice(0,5).map((s,i)=>`<tr>
+            <td><div style="display:flex;align-items:center;gap:8px">${avHTML(s.name,i)}<div><div style="font-weight:500">${s.name}</div><div style="font-size:10px;color:var(--text-l)">${s.id}</div></div></div></td>
+            <td>${s.cls} – ${s.section}</td>
+            <td><a href="tel:${s.phone}" style="color:var(--green);text-decoration:none;font-size:12px">📞 ${s.guardian}</a></td>
+            <td><span class="badge ${s.fee}">${s.fee==='paid'?'✓ পরিশোধ':'✗ বকেয়া'}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>📢 নোটিশ বোর্ড</h3><span>সর্বশেষ</span></div>
+      <div class="card-b">
+        ${(LS.get('notices')||[]).map(n=>`<div class="notice-item">
+          <div class="n-dot" style="background:${n.color}"></div>
+          <div><h4>${n.title}</h4><p>${n.date}</p></div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <div class="card-h"><h3>শ্রেণীভিত্তিক উপস্থিতি</h3></div>
+      <div class="card-b">
+        ${[['Nursery',88],['Class 3',72],['Class 5',91],['Class 7',78],['Class 10',95]].map(([c,p])=>`
+        <div class="att-row">
+          <div class="att-lbl">${c}</div>
+          <div class="att-bar"><div class="att-fill" style="width:${p}%;background:${p>=85?'var(--green-l)':p>=70?'var(--orange)':'var(--red)'}"></div></div>
+          <div class="att-pct" style="color:${p>=85?'var(--green-l)':p>=70?'var(--orange)':'var(--red)'}">${p}%</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h3>দ্রুত কাজ</h3></div>
+      <div class="card-b">
+        <div class="qa-grid">
+          ${[['➕','শিক্ষার্থী যোগ','students'],['📋','উপস্থিতি','attendance'],['💳','পেমেন্ট','fees'],['📊','ফলাফল','results'],['📬','নোটিশ','notices'],['👩‍🏫','শিক্ষক','teachers']].map(([ic,lb,pg])=>`
+          <button class="qa-btn" onclick="navigate('${pg}')">${ic} ${lb}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h3>আজকের উপস্থিতি</h3></div>
+      <div class="card-b" style="text-align:center">
+        <svg width="110" height="110" style="transform:rotate(-90deg)">
+          <circle cx="55" cy="55" r="44" fill="none" stroke="var(--border)" stroke-width="9"/>
+          <circle cx="55" cy="55" r="44" fill="none" stroke="var(--green-l)" stroke-width="9"
+            stroke-dasharray="${(87/100)*2*Math.PI*44} ${(1-87/100)*2*Math.PI*44}" stroke-linecap="round"/>
+        </svg>
+        <div style="margin-top:-68px;margin-bottom:20px">
+          <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif">87%</div>
+          <div style="font-size:9px;color:var(--text-l)">আজ</div>
+        </div>
+        <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="padding:10px;background:var(--green-pale);border-radius:10px"><div style="font-size:18px;font-weight:700;color:var(--green);font-family:'Playfair Display',serif">${Math.round(students.length*0.87)}</div><div style="font-size:10px;color:var(--text-l)">উপস্থিত</div></div>
+          <div style="padding:10px;background:var(--red-pale);border-radius:10px"><div style="font-size:18px;font-weight:700;color:var(--red);font-family:'Playfair Display',serif">${Math.round(students.length*0.13)}</div><div style="font-size:10px;color:var(--text-l)">অনুপস্থিত</div></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════
+// STUDENTS PAGE
+// ══════════════════════════════════════════════════
+function renderStudents(el){
+  let filter='All';
+  const classes=['All','Nursery','KG','Class 1','Class 2','Class 3','Class 4','Class 5','Class 6','Class 7','Class 8','Class 9','Class 10'];
+
+  function draw(){
+    const students=LS.get('students')||[];
+    const q=document.getElementById('search-input')?.value?.toLowerCase()||'';
+    const filtered=students.filter(s=>{
+      const matchClass=filter==='All'||s.cls===filter;
+      const matchSearch=!q||s.name.toLowerCase().includes(q)||s.id.toLowerCase().includes(q)||s.guardian.toLowerCase().includes(q);
+      return matchClass&&matchSearch;
+    });
+
+    el.innerHTML=`
+    <div class="ph">
+      <div><h2>Student Database</h2><p>${students.length} জন শিক্ষার্থী নথিভুক্ত</p></div>
+      <button class="btn-p" onclick="showAddStudent()">➕ শিক্ষার্থী যোগ করুন</button>
+    </div>
+    <div class="filter-bar">
+      ${classes.map(c=>`<button class="filter-chip ${filter===c?'active':''}" onclick="setClassFilter('${c}')">${c}</button>`).join('')}
+    </div>
+    <div class="card">
+      <table class="tbl">
+        <thead><tr><th>শিক্ষার্থী</th><th>আইডি</th><th>শ্রেণী/সেকশন</th><th>রোল</th><th>রক্তের গ্রুপ</th><th>অভিভাবক</th><th>ফোন</th><th>ফি</th><th>Action</th></tr></thead>
+        <tbody>
+          ${filtered.length===0?`<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-l)">কোনো শিক্ষার্থী পাওয়া যায়নি</td></tr>`
+          :filtered.map((s,i)=>`<tr>
+            <td><div style="display:flex;align-items:center;gap:8px">${avHTML(s.name,i)}<span style="font-weight:500">${s.name}</span></div></td>
+            <td style="font-family:monospace;font-size:11px;color:var(--text-l)">${s.id}</td>
+            <td>${s.cls} – ${s.section}</td>
+            <td>${s.roll}</td>
+            <td style="font-weight:700;color:${s.blood.includes('-')?'var(--red)':'var(--green)'}">${s.blood}</td>
+            <td>${s.guardian}</td>
+            <td><a href="tel:${s.phone}" style="color:var(--green);text-decoration:none;font-weight:500">📞 ${s.phone}</a></td>
+            <td><span class="badge ${s.fee}" onclick="toggleFee('${s.id}')" style="cursor:pointer">${s.fee==='paid'?'✓ পরিশোধ':'✗ বকেয়া'}</span></td>
+            <td><button class="btn-r" onclick="deleteStudent('${s.id}')">🗑</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  window.setClassFilter=c=>{filter=c;draw();};
+  window.toggleFee=id=>{
+    const students=LS.get('students')||[];
+    const s=students.find(x=>x.id===id);
+    if(s){LS.update('students',id,{fee:s.fee==='paid'?'unpaid':'paid'});toast('ফি স্ট্যাটাস আপডেট হয়েছে ✅');draw();}
+  };
+  window.deleteStudent=id=>{
+    if(confirm('এই শিক্ষার্থী মুছে ফেলবেন?')){LS.delete('students',id);toast('শিক্ষার্থী মুছে ফেলা হয়েছে','error');draw();}
+  };
+
+  document.getElementById('search-input').addEventListener('input',draw);
+  draw();
+}
+
+function showAddStudent(){
+  const classes=['Nursery','KG','Class 1','Class 2','Class 3','Class 4','Class 5','Class 6','Class 7','Class 8','Class 9','Class 10'];
+  const newId='GR-'+String((LS.get('students')||[]).length+1).padStart(3,'0');
+  showModal(`<div class="modal">
+    <h3>➕ নতুন শিক্ষার্থী যোগ করুন</h3>
+    <div class="form-row">
+      <div class="fg"><label>পূর্ণ নাম *</label><input class="fi" id="f-name" placeholder="e.g. Ahmed Ali"/></div>
+      <div class="fg"><label>আইডি</label><input class="fi" id="f-id" value="${newId}"/></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>শ্রেণী *</label><select class="fi" id="f-cls">${classes.map(c=>`<option>${c}</option>`).join('')}</select></div>
+      <div class="fg"><label>সেকশন</label><select class="fi" id="f-sec"><option>A</option><option>B</option><option>C</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>রোল নং</label><input class="fi" id="f-roll" placeholder="01"/></div>
+      <div class="fg"><label>রক্তের গ্রুপ</label><select class="fi" id="f-blood">${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(b=>`<option>${b}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>অভিভাবকের নাম *</label><input class="fi" id="f-guardian" placeholder="পিতা/মাতার নাম"/></div>
+      <div class="fg"><label>ফোন নম্বর *</label><input class="fi" id="f-phone" placeholder="017XXXXXXXX" type="tel"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">বাতিল</button>
+      <button class="btn-p" onclick="saveStudent()">✓ সংরক্ষণ করুন</button>
+    </div>
+  </div>`);
+}
+
+window.saveStudent=function(){
+  const name=document.getElementById('f-name').value.trim();
+  const guardian=document.getElementById('f-guardian').value.trim();
+  const phone=document.getElementById('f-phone').value.trim();
+  if(!name||!guardian||!phone){toast('সব তারকাচিহ্নিত ঘর পূরণ করুন','error');return;}
+  LS.push('students',{
+    id:document.getElementById('f-id').value||'GR-'+Date.now(),
+    name,cls:document.getElementById('f-cls').value,
+    section:document.getElementById('f-sec').value,
+    roll:document.getElementById('f-roll').value||'00',
+    blood:document.getElementById('f-blood').value,
+    guardian,phone,fee:'unpaid',month:'Feb 2026'
+  });
+  toast('শিক্ষার্থী সফলভাবে যোগ করা হয়েছে ✅');
+  navigate('students');
+};
+
+// ══════════════════════════════════════════════════
+// TEACHERS PAGE
+// ══════════════════════════════════════════════════
+function renderTeachers(el){
+  function draw(){
+    const teachers=LS.get('teachers')||[];
+    el.innerHTML=`
+    <div class="ph">
+      <div><h2>শিক্ষক ও কর্মী</h2><p>${teachers.length} জন</p></div>
+      <button class="btn-p" onclick="showAddTeacher()">➕ শিক্ষক যোগ করুন</button>
+    </div>
+    <div class="card">
+      <table class="tbl">
+        <thead><tr><th>শিক্ষক</th><th>আইডি</th><th>বিষয়</th><th>বেতন (৳)</th><th>স্ট্যাটাস</th><th>Action</th></tr></thead>
+        <tbody>
+          ${teachers.map((t,i)=>`<tr>
+            <td><div style="display:flex;align-items:center;gap:8px">${avHTML(t.name,i+2)}<span style="font-weight:500">${t.name}</span></div></td>
+            <td style="font-family:monospace;font-size:11px;color:var(--text-l)">${t.id}</td>
+            <td>${t.subject}</td>
+            <td style="font-weight:700">৳ ${Number(t.salary).toLocaleString()}</td>
+            <td><span class="badge ${t.status}" onclick="toggleTeacherStatus('${t.id}')" style="cursor:pointer">${t.status==='paid'?'✓ পরিশোধ':'✗ বকেয়া'}</span></td>
+            <td><button class="btn-r" onclick="deleteTeacher('${t.id}')">🗑</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  window.toggleTeacherStatus=id=>{
+    const teachers=LS.get('teachers')||[];
+    const t=teachers.find(x=>x.id===id);
+    if(t){LS.update('teachers',id,{status:t.status==='paid'?'unpaid':'paid'});toast('স্ট্যাটাস আপডেট হয়েছে');draw();}
+  };
+  window.deleteTeacher=id=>{
+    if(confirm('এই শিক্ষক মুছে ফেলবেন?')){LS.delete('teachers',id);toast('শিক্ষক মুছে ফেলা হয়েছে','error');draw();}
+  };
+  draw();
+}
+
+function showAddTeacher(){
+  const newId='T-'+String((LS.get('teachers')||[]).length+1).padStart(3,'0');
+  showModal(`<div class="modal">
+    <h3>➕ নতুন শিক্ষক যোগ করুন</h3>
+    <div class="form-row">
+      <div class="fg"><label>পূর্ণ নাম *</label><input class="fi" id="tf-name" placeholder="Ms. / Mr. Name"/></div>
+      <div class="fg"><label>আইডি</label><input class="fi" id="tf-id" value="${newId}"/></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>বিষয় *</label><input class="fi" id="tf-sub" placeholder="Mathematics"/></div>
+      <div class="fg"><label>মাসিক বেতন (৳) *</label><input class="fi" id="tf-sal" placeholder="20000" type="number"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">বাতিল</button>
+      <button class="btn-p" onclick="saveTeacher()">✓ সংরক্ষণ করুন</button>
+    </div>
+  </div>`);
+}
+
+window.saveTeacher=function(){
+  const name=document.getElementById('tf-name').value.trim();
+  const sub=document.getElementById('tf-sub').value.trim();
+  const sal=document.getElementById('tf-sal').value.trim();
+  if(!name||!sub||!sal){toast('সব ঘর পূরণ করুন','error');return;}
+  LS.push('teachers',{id:document.getElementById('tf-id').value,name,subject:sub,salary:sal,status:'unpaid'});
+  toast('শিক্ষক সফলভাবে যোগ করা হয়েছে ✅');
+  navigate('teachers');
+};
+
+// ══════════════════════════════════════════════════
+// ATTENDANCE PAGE
+// ══════════════════════════════════════════════════
+function renderAttendance(el){
+  const today=new Date().toLocaleDateString('bn-BD');
+  const days=['সোম','মঙ্গল','বুধ','বৃহ','শুক্র'];
+  const atKey='attendance_'+new Date().toDateString();
+  let saved=LS.get(atKey)||{};
+
+  function draw(){
+    const students=LS.get('students')||[];
+    el.innerHTML=`
+    <div class="ph">
+      <div><h2>ডিজিটাল উপস্থিতি</h2><p>তারিখ: ${today}</p></div>
+      <button class="btn-p" onclick="saveAttendance()">💾 সংরক্ষণ করুন</button>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>আজকের উপস্থিতি চিহ্নিত করুন</h3><span>${students.length} জন শিক্ষার্থী</span></div>
+      <table class="tbl">
+        <thead><tr><th>শিক্ষার্থী</th><th>শ্রেণী</th><th>উপস্থিত ✅</th><th>অনুপস্থিত ❌</th><th>স্ট্যাটাস</th></tr></thead>
+        <tbody>
+          ${students.map((s,i)=>{
+            const status=saved[s.id]||'present';
+            return `<tr id="att-row-${s.id}">
+              <td><div style="display:flex;align-items:center;gap:8px">${avHTML(s.name,i)}<span style="font-weight:500">${s.name}</span></div></td>
+              <td>${s.cls}</td>
+              <td style="text-align:center"><input type="radio" name="att-${s.id}" value="present" ${status==='present'?'checked':''} onchange="setAtt('${s.id}','present')"/></td>
+              <td style="text-align:center"><input type="radio" name="att-${s.id}" value="absent" ${status==='absent'?'checked':''} onchange="setAtt('${s.id}','absent')"/></td>
+              <td><span class="badge ${status}" id="att-badge-${s.id}">${status==='present'?'উপস্থিত':'অনুপস্থিত'}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  window.setAtt=(id,val)=>{
+    saved[id]=val;
+    const badge=document.getElementById('att-badge-'+id);
+    if(badge){badge.className='badge '+val;badge.textContent=val==='present'?'উপস্থিত':'অনুপস্থিত';}
+  };
+  window.saveAttendance=()=>{
+    LS.set(atKey,saved);
+    const pres=Object.values(saved).filter(v=>v==='present').length;
+    toast(`✅ উপস্থিতি সংরক্ষিত — উপস্থিত: ${pres} জন`);
+  };
+  draw();
+}
+
+// ══════════════════════════════════════════════════
+// RESULTS PAGE
+// ══════════════════════════════════════════════════
+function renderResults(el){
+  function draw(){
+    const results=LS.get('results')||[];
+    el.innerHTML=`
+    <div class="ph">
+      <div><h2>ফলাফল ও মার্কশিট</h2><p>বার্ষিক পরীক্ষা 2025-26</p></div>
+      <button class="btn-p" onclick="showAddResult()">➕ ফলাফল যোগ করুন</button>
+    </div>
+    <div class="card">
+      <table class="tbl">
+        <thead><tr><th>শিক্ষার্থী</th><th>শ্রেণী</th><th>গণিত</th><th>বিজ্ঞান</th><th>ইংরেজি</th><th>বাংলা</th><th>মোট</th><th>গ্রেড</th><th>Action</th></tr></thead>
+        <tbody>
+          ${results.map((m,i)=>{
+            const total=m.math+m.science+m.english+m.bangla;
+            const avg=total/4;
+            const grade=avg>=90?'A+':avg>=80?'A':avg>=70?'B':avg>=60?'C':'F';
+            const gc=avg>=80?'var(--green)':avg>=70?'var(--orange)':'var(--red)';
+            return `<tr>
+              <td><div style="display:flex;align-items:center;gap:8px">${avHTML(m.name,i)}<span style="font-weight:500">${m.name}</span></div></td>
+              <td>${m.cls}</td>
+              ${[m.math,m.science,m.english,m.bangla].map(s=>`<td style="font-weight:600;color:${s>=85?'var(--green)':s>=70?'var(--orange)':'var(--red)'}">${s}</td>`).join('')}
+              <td style="font-weight:700">${total}/400</td>
+              <td><span class="result-badge" style="background:${gc}20;color:${gc}">${grade}</span></td>
+              <td><button class="btn-r" onclick="deleteResult('${m.id}')">🗑</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  window.deleteResult=id=>{
+    if(confirm('এই ফলাফল মুছবেন?')){LS.delete('results',id);toast('ফলাফল মুছে ফেলা হয়েছে','error');draw();}
+  };
+  draw();
+}
+
+function showAddResult(){
+  const students=LS.get('students')||[];
+  showModal(`<div class="modal">
+    <h3>➕ ফলাফল যোগ করুন</h3>
+    <div class="fg"><label>শিক্ষার্থী *</label>
+      <select class="fi" id="r-stu"><option value="">-- নির্বাচন করুন --</option>
+      ${students.map(s=>`<option value="${s.id}">${s.name} (${s.cls})</option>`).join('')}</select></div>
+    <div class="form-row">
+      <div class="fg"><label>গণিত (100)</label><input class="fi" id="r-math" type="number" min="0" max="100" placeholder="0-100"/></div>
+      <div class="fg"><label>বিজ্ঞান (100)</label><input class="fi" id="r-sci" type="number" min="0" max="100" placeholder="0-100"/></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>ইংরেজি (100)</label><input class="fi" id="r-eng" type="number" min="0" max="100" placeholder="0-100"/></div>
+      <div class="fg"><label>বাংলা (100)</label><input class="fi" id="r-ban" type="number" min="0" max="100" placeholder="0-100"/></div>
+    </div>
+    <div class="fg"><label>পরীক্ষার নাম</label><input class="fi" id="r-exam" placeholder="Annual 2025" value="Annual 2025"/></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">বাতিল</button>
+      <button class="btn-p" onclick="saveResult()">✓ সংরক্ষণ</button>
+    </div>
+  </div>`);
+}
+
+window.saveResult=function(){
+  const stuId=document.getElementById('r-stu').value;
+  if(!stuId){toast('শিক্ষার্থী নির্বাচন করুন','error');return;}
+  const students=LS.get('students')||[];
+  const s=students.find(x=>x.id===stuId);
+  const math=parseInt(document.getElementById('r-math').value)||0;
+  const science=parseInt(document.getElementById('r-sci').value)||0;
+  const english=parseInt(document.getElementById('r-eng').value)||0;
+  const bangla=parseInt(document.getElementById('r-ban').value)||0;
+  LS.push('results',{studentId:stuId,name:s.name,cls:s.cls,math,science,english,bangla,exam:document.getElementById('r-exam').value||'Exam'});
+  toast('ফলাফল সংরক্ষিত হয়েছে ✅');
+  navigate('results');
+};
+
+// ══════════════════════════════════════════════════
+// FEES PAGE
+// ══════════════════════════════════════════════════
+function renderFees(el){
+  const students=LS.get('students')||[];
+  const teachers=LS.get('teachers')||[];
+  const paid=students.filter(s=>s.fee==='paid');
+  const unpaid=students.filter(s=>s.fee==='unpaid');
+  const feePerStudent=500;
+  const total=students.length*feePerStudent;
+  const collected=paid.length*feePerStudent;
+  const due=unpaid.length*feePerStudent;
+  const tSal=teachers.reduce((a,t)=>a+parseInt(t.salary||0),0);
+  let tab='students';
+
+  function draw(){
+    el.innerHTML=`
+    <div class="ph">
+      <div><h2>আর্থিক মডিউল</h2><p>ফেব্রুয়ারি 2026</p></div>
+      <button class="btn-p" onclick="printReport()">🖨️ রিপোর্ট প্রিন্ট করুন</button>
+    </div>
+    <div class="fee-sum">
+      <div class="fee-box ft"><div class="fv">৳ ${total.toLocaleString()}</div><div class="fl" style="color:var(--green)">মোট ফি (এই মাস)</div></div>
+      <div class="fee-box fc"><div class="fv">৳ ${collected.toLocaleString()}</div><div class="fl" style="color:var(--blue)">সংগৃহীত</div></div>
+      <div class="fee-box fd"><div class="fv">৳ ${due.toLocaleString()}</div><div class="fl" style="color:var(--red)">বকেয়া</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn ${tab==='students'?'active':''}" onclick="setFeeTab('students')">🎒 শিক্ষার্থীর ফি</button>
+      <button class="tab-btn ${tab==='teachers'?'active':''}" onclick="setFeeTab('teachers')">👩‍🏫 বেতন</button>
+    </div>
+    <div id="fee-table"></div>`;
+
+    drawFeeTable();
+  }
+
+  function drawFeeTable(){
+    const ft=document.getElementById('fee-table');
+    if(!ft) return;
+    if(tab==='students'){
+      ft.innerHTML=`<div class="card"><table class="tbl">
+        <thead><tr><th>শিক্ষার্থী</th><th>শ্রেণী</th><th>মাসিক ফি</th><th>মাস</th><th>স্ট্যাটাস</th><th>Action</th></tr></thead>
+        <tbody>${students.map((s,i)=>`<tr>
+          <td><div style="display:flex;align-items:center;gap:8px">${avHTML(s.name,i)}<span style="font-weight:500">${s.name}</span></div></td>
+          <td>${s.cls}</td>
+          <td style="font-weight:600">৳ ${feePerStudent}</td>
+          <td>Feb 2026</td>
+          <td><span class="badge ${s.fee}" style="cursor:pointer" onclick="toggleFeeStatus('${s.id}')">${s.fee==='paid'?'✓ পরিশোধ':'✗ বকেয়া'}</span></td>
+          <td>${s.fee==='unpaid'?`<button onclick="sendReminder('${s.name}','${s.phone}')" style="background:var(--green-pale);color:var(--green);border:1px solid var(--border);border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer">📩 রিমাইন্ডার</button>`:'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+    } else {
+      ft.innerHTML=`<div class="card">
+        <div class="card-h"><h3>মোট বেতন বরাদ্দ</h3><span>৳ ${tSal.toLocaleString()}</span></div>
+        <table class="tbl">
+          <thead><tr><th>শিক্ষক</th><th>বিষয়</th><th>বেতন</th><th>মাস</th><th>স্ট্যাটাস</th></tr></thead>
+          <tbody>${teachers.map((t,i)=>`<tr>
+            <td><div style="display:flex;align-items:center;gap:8px">${avHTML(t.name,i+2)}<span style="font-weight:500">${t.name}</span></div></td>
+            <td>${t.subject}</td>
+            <td style="font-weight:700">৳ ${Number(t.salary).toLocaleString()}</td>
+            <td>Feb 2026</td>
+            <td><span class="badge ${t.status}">${t.status==='paid'?'✓ পরিশোধ':'✗ বকেয়া'}</span></td>
+          </tr>`).join('')}</tbody>
+        </table></div>`;
+    }
+  }
+
+  window.setFeeTab=t=>{tab=t;draw();};
+  window.toggleFeeStatus=id=>{
+    const sts=LS.get('students')||[];
+    const s=sts.find(x=>x.id===id);
+    if(s){LS.update('students',id,{fee:s.fee==='paid'?'unpaid':'paid'});toast('ফি স্ট্যাটাস পরিবর্তন হয়েছে ✅');navigate('fees');}
+  };
+  window.sendReminder=function(name,phone){
+    toast(`📩 রিমাইন্ডার পাঠানো হচ্ছে ${name} কে`);
+    setTimeout(()=>{window.open(`sms:${phone}?body=প্রিয় অভিভাবক, ${name} এর ফেব্রুয়ারি 2026 মাসের ফি বকেয়া আছে। অনুগ্রহ করে দ্রুত পরিশোধ করুন। — GR-KG School`,'_self');},500);
+  };
+  window.printReport=function(){window.print();};
+  draw();
+}
+
+// ══════════════════════════════════════════════════
+// ROUTINE PAGE
+// ══════════════════════════════════════════════════
+function renderRoutine(el){
+  const days=['সোম','মঙ্গল','বুধ','বৃহস্পতি','শুক্র'];
+  const periods=[
+    {time:'8:00-8:45',subjects:['বাংলা','গণিত','ইংরেজি','বিজ্ঞান','শারীরিক শিক্ষা']},
+    {time:'8:45-9:30',subjects:['গণিত','বাংলা','বিজ্ঞান','ইংরেজি','শিল্পকলা']},
+    {time:'9:30-10:15',subjects:['ইংরেজি','বিজ্ঞান','বাংলা','গণিত','ধর্ম']},
+    {time:'10:15-10:30',subjects:['বিরতি','বিরতি','বিরতি','বিরতি','বিরতি']},
+    {time:'10:30-11:15',subjects:['বিজ্ঞান','ইংরেজি','গণিত','বাংলা','সমাজ']},
+    {time:'11:15-12:00',subjects:['সমাজ','ধর্ম','শিল্পকলা','শারীরিক শিক্ষা','গণিত']},
+  ];
+  const colors={'বাংলা':'#e8f5ee','গণিত':'#e8f0fe','ইংরেজি':'#fef3e2','বিজ্ঞান':'#fde8e8','বিরতি':'#f5f9f6','শিল্পকলা':'#f5e8fe','ধর্ম':'#e8f5fe','সমাজ':'#fefae8','শারীরিক শিক্ষা':'#e8fef5'};
+
+  el.innerHTML=`
+  <div class="ph">
+    <div><h2>সাপ্তাহিক রুটিন</h2><p>Class 5 — সেকশন A</p></div>
+    <button class="btn-p" onclick="window.print()">🖨️ প্রিন্ট করুন</button>
+  </div>
+  <div class="card card-b" style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;min-width:600px">
+      <thead>
+        <tr>
+          <th style="padding:10px;background:var(--dark);color:#fff;border-radius:8px 0 0 0;font-size:11px;width:90px">সময়</th>
+          ${days.map((d,i)=>`<th style="padding:10px;background:var(--dark);color:#fff;font-size:12px;border-left:2px solid var(--mid)">${d}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${periods.map(p=>`<tr>
+          <td style="padding:8px;background:var(--off);font-size:10px;color:var(--text-l);border-bottom:1px solid var(--border);text-align:center;font-weight:600">${p.time}</td>
+          ${p.subjects.map(s=>`<td style="padding:8px;border-bottom:1px solid var(--border);border-left:1px solid var(--border);background:${colors[s]||'#fff'}">
+            ${p.time.includes('10:15')?`<div style="text-align:center;color:var(--text-l);font-size:12px">☕ ${s}</div>`:
+            `<div style="font-size:13px;font-weight:600;color:var(--green)">${s}</div>
+            <div style="font-size:10px;color:var(--text-l);margin-top:2px">৪৫ মিনিট</div>`}
+          </td>`).join('')}
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════
+// NOTICES PAGE
+// ══════════════════════════════════════════════════
+function renderNotices(el){
+  function draw(){
+    const notices=LS.get('notices')||[];
+    const typeIcons={'event':'🏅','fee':'💳','urgent':'🚨','academic':'📚','holiday':'📅','general':'📌'};
+
+    el.innerHTML=`
+    <div class="ph">
+      <div><h2>নোটিশ বোর্ড</h2><p>${notices.length}টি নোটিশ</p></div>
+      <button class="btn-p" onclick="showAddNotice()">📬 নোটিশ পোস্ট করুন</button>
+    </div>
+    <div class="g2">
+      <div>
+        ${notices.map(n=>`<div style="background:#fff;border-radius:12px;padding:14px 18px;margin-bottom:10px;border:1px solid var(--border);border-left:4px solid ${n.color};display:flex;gap:12px;align-items:flex-start">
+          <div style="width:34px;height:34px;border-radius:9px;background:${n.color}18;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${typeIcons[n.type]||'📌'}</div>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">${n.title}</div>
+            <div style="font-size:11px;color:var(--text-l);margin-top:2px">${n.date} · ${n.type}</div>
+          </div>
+          <button onclick="deleteNotice('${n.id}')" style="background:transparent;border:none;cursor:pointer;font-size:14px;color:var(--text-l)">🗑</button>
+        </div>`).join('')}
+        ${notices.length===0?'<div style="text-align:center;padding:40px;color:var(--text-l)">কোনো নোটিশ নেই</div>':''}
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>📤 Push Notification</h3></div>
+        <div class="card-b">
+          <div class="fg"><label>বিষয়</label><input class="fi" id="push-title" placeholder="জরুরি বার্তার শিরোনাম"/></div>
+          <div class="fg"><label>বার্তা</label><textarea class="fi" id="push-msg" placeholder="এখানে বিস্তারিত লিখুন..." rows="4"></textarea></div>
+          <div class="fg"><label>প্রেরণ করুন</label>
+            <select class="fi" id="push-to">
+              <option>সকলের কাছে</option>
+              <option>শুধু অভিভাবকদের</option>
+              <option>শুধু শিক্ষকদের</option>
+              <option>Class 10 এর অভিভাবক</option>
+            </select>
+          </div>
+          <button class="btn-p" style="width:100%;justify-content:center" onclick="sendPushNotif()">🔔 পাঠান</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  window.deleteNotice=id=>{
+    if(confirm('এই নোটিশ মুছবেন?')){LS.delete('notices',id);toast('নোটিশ মুছে ফেলা হয়েছে','error');draw();}
+  };
+  window.sendPushNotif=()=>{
+    const t=document.getElementById('push-title')?.value;
+    if(!t){toast('শিরোনাম লিখুন','error');return;}
+    toast('🔔 নোটিফিকেশন পাঠানো হয়েছে ✅');
+    document.getElementById('push-title').value='';
+    document.getElementById('push-msg').value='';
+  };
+  draw();
+}
+
+function showAddNotice(){
+  showModal(`<div class="modal">
+    <h3>📬 নতুন নোটিশ</h3>
+    <div class="fg"><label>শিরোনাম *</label><input class="fi" id="n-title" placeholder="নোটিশের শিরোনাম"/></div>
+    <div class="form-row">
+      <div class="fg"><label>ধরন</label><select class="fi" id="n-type"><option value="general">সাধারণ</option><option value="event">ইভেন্ট</option><option value="fee">ফি</option><option value="urgent">জরুরি</option><option value="academic">একাডেমিক</option><option value="holiday">ছুটি</option></select></div>
+      <div class="fg"><label>রং</label><input class="fi" id="n-color" type="color" value="#22a05a"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">বাতিল</button>
+      <button class="btn-p" onclick="saveNotice()">✓ পোস্ট করুন</button>
+    </div>
+  </div>`);
+}
+
+window.saveNotice=function(){
+  const title=document.getElementById('n-title').value.trim();
+  if(!title){toast('শিরোনাম লিখুন','error');return;}
+  const today=new Date();
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  LS.push('notices',{title,type:document.getElementById('n-type').value,color:document.getElementById('n-color').value,date:`${months[today.getMonth()]} ${today.getDate()}`});
+  toast('নোটিশ সফলভাবে পোস্ট হয়েছে ✅');
+  navigate('notices');
+};
+
+// ══════════════════════════════════════════════════
+// SETTINGS PAGE
+// ══════════════════════════════════════════════════
+function renderSettings(el){
+  el.innerHTML=`
+  <div class="ph"><div><h2>Settings</h2><p>সিস্টেম কনফিগারেশন</p></div></div>
+  <div class="g2">
+    <div class="card card-b">
+      <h3 style="font-size:15px;margin-bottom:16px">🏫 বিদ্যালয়ের তথ্য</h3>
+      <div class="fg"><label>বিদ্যালয়ের নাম</label><input class="fi" value="GR-KG School"/></div>
+      <div class="fg"><label>ঠিকানা</label><input class="fi" placeholder="বিদ্যালয়ের ঠিকানা"/></div>
+      <div class="fg"><label>ফোন</label><input class="fi" type="tel" placeholder="01XXXXXXXXX"/></div>
+      <div class="fg"><label>ইমেইল</label><input class="fi" type="email" placeholder="school@email.com"/></div>
+      <div class="fg"><label>মাসিক ফি (৳)</label><input class="fi" type="number" value="500"/></div>
+      <button class="btn-p">💾 পরিবর্তন সংরক্ষণ করুন</button>
+    </div>
+    <div>
+      <div class="card card-b" style="margin-bottom:16px">
+        <h3 style="font-size:15px;margin-bottom:14px">🔐 Admin পাসওয়ার্ড</h3>
+        <div class="fg"><label>বর্তমান পাসওয়ার্ড</label><input class="fi" type="password" placeholder="••••••"/></div>
+        <div class="fg"><label>নতুন পাসওয়ার্ড</label><input class="fi" type="password" placeholder="••••••"/></div>
+        <button class="btn-p">🔒 পরিবর্তন করুন</button>
+      </div>
+      <div class="card card-b">
+        <h3 style="font-size:15px;margin-bottom:14px">🗄️ Data Management</h3>
+        <button class="btn-p" style="width:100%;justify-content:center;margin-bottom:8px" onclick="exportData()">📤 সব Data Export করুন</button>
+        <button onclick="if(confirm('সব data মুছে ফেলবেন?')){localStorage.clear();toast('Data মুছে ফেলা হয়েছে','error');navigate('dashboard');}" style="width:100%;padding:9px;border:1.5px solid var(--red);border-radius:9px;background:var(--red-pale);color:var(--red);font-size:13px;cursor:pointer;font-family:'Hind Siliguri',sans-serif">🗑️ সব Data মুছুন</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+window.exportData=function(){
+  const data={students:LS.get('students'),teachers:LS.get('teachers'),notices:LS.get('notices'),results:LS.get('results'),exported:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='grkg-backup-'+new Date().toDateString()+'.json';
+  a.click();
+  toast('Data export সম্পন্ন ✅');
+};
+
+// ══════════════════════════════════════════════════
+// PAGE REGISTRY
+// ══════════════════════════════════════════════════
+const PAGES={
+  dashboard:renderDashboard,
+  students:renderStudents,
+  teachers:renderTeachers,
+  attendance:renderAttendance,
+  results:renderResults,
+  fees:renderFees,
+  routine:renderRoutine,
+  notices:renderNotices,
+  settings:renderSettings,
+};
+
+// ══════════════════════════════════════════════════
+// NOTIFICATIONS PANEL
+// ══════════════════════════════════════════════════
+window.showNotifPanel=function(){
+  showModal(`<div class="modal">
+    <h3>🔔 নোটিফিকেশন</h3>
+    ${[
+      {icon:'💳',msg:'Zara Malik এর ফি বকেয়া',time:'আজ'},
+      {icon:'💳',msg:'Farhan Ahmed এর ফি বকেয়া',time:'আজ'},
+      {icon:'📋',msg:'আজকের উপস্থিতি এখনো নেওয়া হয়নি',time:'সকাল ৮টা'},
+      {icon:'📢',msg:'PTA Meeting আগামীকাল',time:'গতকাল'},
+    ].map(n=>`<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:20px">${n.icon}</div>
+      <div><div style="font-size:13px;font-weight:500">${n.msg}</div><div style="font-size:11px;color:var(--text-l);margin-top:2px">${n.time}</div></div>
+    </div>`).join('')}
+    <div class="modal-actions"><button class="btn-p" onclick="closeModal()">বন্ধ করুন</button></div>
+  </div>`);
+};
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+seedData();
+navigate('dashboard');
+
+// Register Service Worker for PWA
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
